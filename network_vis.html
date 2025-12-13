@@ -73,14 +73,15 @@
       <div class="dataset-picker">
         <label for="datasetSelect">Dataset</label>
         <select id="datasetSelect">
-          <option value="BLM" selected>BLM</option>
-          <option value="Stock">Stock</option>
+          <option value="BLM">BLM</option>
+          <option value="Stock" selected>Stock</option>
         </select>
       </div>
       <div class="mode-title">Modes</div>
       <button class="mode-btn active" data-mode="attitude">Attitude</button>
       <button class="mode-btn" data-mode="news">News Diffusion</button>
       <button class="mode-btn" data-mode="emotion">Emotion</button>
+      <button class="mode-btn" data-mode="rec">Rec.Cycle</button>
     </aside>
   </div>
 
@@ -122,6 +123,13 @@
       if (n) return "#3b82f6";
       return "#f8fafc";
     };
+    const colorForRec = (rec) => {
+      const v = Number(rec);
+      if (v >= 3) return "#38bdf8";
+      if (v === 2) return "#f97316";
+      if (v === 1) return "#fbbf24";
+      return "#e5e7eb";
+    };
     const emotionColors = new Map();
     const emotionValues = new Set();
     const palette = ["#f59e0b", "#8b5cf6", "#10b981", "#ec4899", "#06b6d4", "#f97316", "#22c55e", "#eab308", "#3b82f6", "#ef4444", "#14b8a6", "#a855f7"];
@@ -134,13 +142,16 @@
     const attitudeByRound = new Map();
     const newsByRound = new Map();
     const shockByRound = new Map();
+    const recTimesByRound = new Map();
+    const recReasonsByRound = new Map();
     const infoByRound = new Map();
     const postsByRound = new Map();
     let legendLabels = {
       attitude: ["Positive (LIKE)", "Negative (DISLIKE)", "None / Missing"],
       news: ["Knows News (True)", "Unknown (False/NA)"],
       attitude_neutral: "Neutral (NEUTRAL)",
-      news_shock: "Knows Shock (True+True)"
+      news_shock: "Knows Shock (True+True)",
+      rec_cycle: ["Rec 0", "Rec 1", "Rec 2", "Rec 3"]
     };
     let fontSizes = { header: "20px", body: "14px", legend: "12px", label: "10px", timeline: "14px", sidebar: "13px", tooltip: "12px" };
     let maxRound = 9;
@@ -202,11 +213,23 @@
         else emotionColors.forEach((color, em) => {
           legendEl.append("span").attr("class", "legend-item").html(`<span class="legend-swatch" style="background: ${color}; border: none;"></span>${em}`);
         });
+      } else if (mode === "rec") {
+        const labels = legendLabels.rec_cycle || ["Rec 0", "Rec 1", "Rec 2", "Rec 3"];
+        const swatches = [
+          { color: "#e5e7eb", label: labels[0] || "Rec 0" },
+          { color: "#fbbf24", label: labels[1] || "Rec 1" },
+          { color: "#f97316", label: labels[2] || "Rec 2" },
+          { color: "#38bdf8", label: labels[3] || "Rec 3+" }
+        ];
+        swatches.forEach(item => {
+          legendEl.append("span").attr("class", "legend-item").html(`<span class="legend-swatch" style="background: ${item.color}; border: none;"></span>${item.label}`);
+        });
       }
     };
 
     const resetMaps = () => {
       attitudeByRound.clear(); newsByRound.clear(); shockByRound.clear();
+      recTimesByRound.clear(); recReasonsByRound.clear();
       infoByRound.clear(); postsByRound.clear();
       emotionColors.clear(); emotionValues.clear();
       hasNeutralAttitude = false; hasShockTrue = false;
@@ -231,12 +254,22 @@
         const shock = d.know_shock;
         if (normalizeBool(knows) && normalizeBool(shock)) hasShockTrue = true;
 
+        const recTimes = d.rec_times !== undefined && d.rec_times !== null && d.rec_times !== "" ? +d.rec_times : 0;
+        const reasons = [d.rec_decide_reason_1, d.rec_decide_reason_2, d.rec_decide_reason_3, d.rec_decide_reason_4]
+          .filter(v => v && v.toString().trim() !== "")
+          .map(v => v.toString().trim())
+          .join("\n");
+
         if (!attitudeByRound.has(round)) attitudeByRound.set(round, new Map());
         attitudeByRound.get(round).set(id, att);
         if (!newsByRound.has(round)) newsByRound.set(round, new Map());
         newsByRound.get(round).set(id, knows);
         if (!shockByRound.has(round)) shockByRound.set(round, new Map());
         shockByRound.get(round).set(id, shock);
+        if (!recTimesByRound.has(round)) recTimesByRound.set(round, new Map());
+        recTimesByRound.get(round).set(id, recTimes);
+        if (!recReasonsByRound.has(round)) recReasonsByRound.set(round, new Map());
+        recReasonsByRound.get(round).set(id, reasons);
         if (!infoByRound.has(round)) infoByRound.set(round, new Map());
         infoByRound.get(round).set(id, { preference: preference || "", emotion: emotion || "", emotionIntensity: emotionIntensity || "", emotionExplanation: emotionExplanation || "", selfEfficacy: d.self_efficacy || "", outcome: d.outcome_expectation || "" });
         if (emotion && emotion.trim() !== "") emotionValues.add(emotion.trim());
@@ -253,15 +286,18 @@
       const shockMap = shockByRound.get(round) || new Map();
       const infoMap = infoByRound.get(round) || new Map();
       const postMap = postsByRound.get(round) || new Map();
+      const recMap = recTimesByRound.get(round) || new Map();
 
       nodeSel.attr("fill", d => {
         if (mode === "attitude") return colorForAttitude(attMap.get(d.id));
         if (mode === "news") return colorForNews(newsMap.get(d.id), shockMap.get(d.id));
+        if (mode === "rec") return colorForRec(recMap.get(d.id));
         const info = infoMap.get(d.id) || {}; return colorForEmotion(info.emotion);
       }).attr("stroke", d => {
         let fill;
         if (mode === "attitude") fill = colorForAttitude(attMap.get(d.id));
         else if (mode === "news") fill = colorForNews(newsMap.get(d.id), shockMap.get(d.id));
+        else if (mode === "rec") fill = colorForRec(recMap.get(d.id));
         else fill = colorForEmotion((infoMap.get(d.id) || {}).emotion);
         return fill === "var(--neutral)" ? "var(--stroke)" : "#0f172a";
       });
@@ -351,17 +387,31 @@
 
       const bindNodeHover = () => {
         nodeSel.on("mousemove", (event, d) => {
-          const infoMap = infoByRound.get(currentRound) || new Map();
-          const info = infoMap.get(d.id) || {};
-          tooltip.html(`
-            <div><strong>Attitude:</strong> ${info.preference || "N/A"}</div>
-            <div><strong>Emotion:</strong> ${info.emotion || "N/A"}${info.emotionIntensity ? ", intensity " + info.emotionIntensity : ""}${info.emotionExplanation ? ", " + info.emotionExplanation : ""}</div>
-            <div><strong>Self-efficacy:</strong> ${info.selfEfficacy || "N/A"}</div>
-            <div><strong>Outcome Expectancy:</strong> ${info.outcome || "N/A"}</div>
-          `)
-          .style("left", (event.clientX + 12) + "px")
-          .style("top", (event.clientY + 12) + "px")
-          .style("opacity", 1);
+          if (mode === "rec") {
+            const recMap = recTimesByRound.get(currentRound) || new Map();
+            const reasonMap = recReasonsByRound.get(currentRound) || new Map();
+            const recVal = recMap.get(d.id);
+            const reasons = reasonMap.get(d.id) || "N/A";
+            tooltip.html(`
+              <div><strong>Rec Times:</strong> ${recVal !== undefined ? recVal : "N/A"}</div>
+              <div style="margin-top:4px; white-space: pre-line;"><strong>Reasons:</strong>${reasons ? "<br>" + reasons : " N/A"}</div>
+            `)
+            .style("left", (event.clientX + 12) + "px")
+            .style("top", (event.clientY + 12) + "px")
+            .style("opacity", 1);
+          } else {
+            const infoMap = infoByRound.get(currentRound) || new Map();
+            const info = infoMap.get(d.id) || {};
+            tooltip.html(`
+              <div><strong>Attitude:</strong> ${info.preference || "N/A"}</div>
+              <div><strong>Emotion:</strong> ${info.emotion || "N/A"}${info.emotionIntensity ? ", intensity " + info.emotionIntensity : ""}${info.emotionExplanation ? ", " + info.emotionExplanation : ""}</div>
+              <div><strong>Self-efficacy:</strong> ${info.selfEfficacy || "N/A"}</div>
+              <div><strong>Outcome Expectancy:</strong> ${info.outcome || "N/A"}</div>
+            `)
+            .style("left", (event.clientX + 12) + "px")
+            .style("top", (event.clientY + 12) + "px")
+            .style("opacity", 1);
+          }
         }).on("mouseleave", () => tooltip.style("opacity", 0));
       };
 
@@ -392,7 +442,8 @@
       datasetSelect.addEventListener("change", e => { loadDataset(e.target.value); });
 
       renderLegend(mode);
-      loadDataset("BLM");
+      datasetSelect.value = "Stock";
+      loadDataset("Stock");
     });
 
     function drag(simulation) {

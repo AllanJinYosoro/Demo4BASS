@@ -9,5 +9,11 @@
     "Be unaware of news"
   ],
   "attitude_neutral": "Neutral",
-  "news_shock": "Be aware of shock event and news"
+  "news_shock": "Be aware of shock event and news",
+  "rec_cycle": [
+    "No Rec. Seeking",
+    "Low Rec. Seeking",
+    "Mid Rec. Seeking",
+    "High Rec. Seeking"
+  ]
 }
