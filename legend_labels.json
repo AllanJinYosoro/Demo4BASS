@@ -5,7 +5,9 @@
     "None"
   ],
   "news": [
-    "Be aware of the news",
-    "Be unaware of the news"
-  ]
+    "Be aware of news",
+    "Be unaware of news"
+  ],
+  "attitude_neutral": "Neutral",
+  "news_shock": "Be aware of shock event and news"
 }
