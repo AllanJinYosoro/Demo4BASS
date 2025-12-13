@@ -1,0 +1,11 @@
+{
+  "attitude": [
+    "Positive",
+    "Negative",
+    "None"
+  ],
+  "news": [
+    "Be aware of the news",
+    "Be unaware of the news"
+  ]
+}
