@@ -25,6 +25,19 @@
       color: var(--text);
       min-height: 100vh;
       overflow-x: hidden;
+      position: relative;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background: url("bg-network.svg") center/cover no-repeat;
+      opacity: 0.35;
+      pointer-events: none;
+    }
+    body > * {
+      position: relative;
+      z-index: 1;
     }
     .hero {
       position: relative;
@@ -94,6 +107,19 @@
       color: var(--muted);
       margin: 8px auto 0;
       text-align: center;
+    }
+    .hero-visual {
+      display: grid;
+      place-items: center;
+      margin: 18px auto 6px;
+    }
+    .hero-visual img {
+      width: min(90vw, 1080px);
+      max-width: 100%;
+      height: auto;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.35);
     }
     .cta-row {
       display: flex;
@@ -222,13 +248,16 @@
 </head>
 <body>
   <section class="hero">
-    <div class="hero-content">
-      <h1 id="hero-title">Project Title Placeholder</h1>
-      <p class="summary" id="hero-summary">Project summary placeholder: briefly describe the goal, data source, or highlight of the visualization. Replace with final copy later.</p>
-      <div class="cta-row">
-        <a class="primary-btn" href="#demo">View Demo</a>
-        <a class="ghost-btn" href="network_vis.html" target="_blank" rel="noopener">Open full visualization</a>
-      </div>
+      <div class="hero-content">
+        <h1 id="hero-title">Project Title Placeholder</h1>
+        <p class="summary" id="hero-summary">Project summary placeholder: briefly describe the goal, data source, or highlight of the visualization. Replace with final copy later.</p>
+        <div class="hero-visual">
+          <img src="intro.png" alt="Project introduction visual">
+        </div>
+        <div class="cta-row">
+          <a class="primary-btn" href="#demo">View Demo</a>
+          <a class="ghost-btn" href="network_vis.html" target="_blank" rel="noopener">Open full visualization</a>
+        </div>
     </div>
     <a class="arrow arrow-bounce" href="#demo" aria-label="Scroll to demo">
       <svg fill="none" viewBox="0 0 24 24" stroke-width="1.6">
