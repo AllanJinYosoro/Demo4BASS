@@ -50,6 +50,7 @@
     input[type="range"] { flex: 1; appearance: none; height: 6px; background: rgba(94, 122, 143, 0.6); border-radius: 999px; outline: none; }
     input[type="range"]::-webkit-slider-thumb { appearance: none; width: 18px; height: 18px; border-radius: 50%; background: linear-gradient(135deg, #7ec9f5 0%, #a4c8e4 100%); border: 2px solid #7f95aa; box-shadow: 0 0 0 3px rgba(126, 201, 245, 0.28); cursor: pointer; }
     .legend { display: flex; gap: 12px; font-size: var(--font-legend); margin-top: 6px; color: #e2e8f0; align-items: center; flex-wrap: wrap; }
+    .stats { margin-top: 6px; font-size: var(--font-legend); color: #e2e8f0; }
     .legend-item { display: inline-flex; align-items: center; gap: 6px; }
     .legend-swatch { width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--stroke); }
     .dataset-picker { display: flex; flex-direction: column; gap: 6px; font-size: var(--font-body); color: #f1f5f9; margin-bottom: 10px; }
@@ -65,6 +66,7 @@
   <header>
     <h1>Online Social Network</h1>
     <div class="legend"></div>
+    <div id="attitudeStats" class="stats"></div>
   </header>
 
   <div id="main">
@@ -139,6 +141,38 @@
       return emotionColors.get(key) || "var(--neutral)";
     };
 
+    const updateAttitudeStats = (round) => {
+      if (!attitudeStatsEl) return;
+      if (mode !== "attitude") {
+        attitudeStatsEl.style.display = "none";
+        return;
+      }
+      const attMap = attitudeByRound.get(round) || new Map();
+      let pos = 0, neg = 0, neu = 0, none = 0;
+      attMap.forEach(vRaw => {
+        const v = (vRaw || "").toString().toLowerCase().trim();
+        if (v === "like" || v === "positive") pos++;
+        else if (v === "dislike" || v === "negative") neg++;
+        else if (v === "neutral") neu++;
+        else none++;
+      });
+      const total = pos + neg + neu + none;
+      if (!total) {
+        attitudeStatsEl.style.display = "block";
+        attitudeStatsEl.textContent = "Attitude share: no data";
+        return;
+      }
+      const pct = (c) => ((c / total) * 100).toFixed(1) + "%";
+      const parts = [
+        `Positive ${pct(pos)}`,
+        `Negative ${pct(neg)}`
+      ];
+      if (hasNeutralAttitude || neu > 0) parts.push(`Neutral ${pct(neu)}`);
+      parts.push(`None ${pct(none)}`);
+      attitudeStatsEl.style.display = "block";
+      attitudeStatsEl.textContent = "Attitude share: " + parts.join(" | ");
+    };
+
     const attitudeByRound = new Map();
     const newsByRound = new Map();
     const shockByRound = new Map();
@@ -185,6 +219,7 @@
     const roundLabel = document.getElementById("roundLabel");
     const datasetSelect = document.getElementById("datasetSelect");
     const legendEl = d3.select(".legend");
+    const attitudeStatsEl = document.getElementById("attitudeStats");
 
     const applyFontSizes = (sizes) => {
       const root = document.documentElement;
@@ -323,6 +358,7 @@
       }).on("mouseleave", () => tooltip.style("opacity", 0));
 
       bubbles.exit().remove();
+      updateAttitudeStats(round);
     };
 
     const rebuildGraph = (edgesNew) => {
