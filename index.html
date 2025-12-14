@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>网络扩散可视化 | NewsSpread</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0c1324;
+      --bg-alt: #0f162a;
+      --surface: rgba(255, 255, 255, 0.06);
+      --border: rgba(255, 255, 255, 0.12);
+      --accent: #f2a541;
+      --accent-2: #4cc9f0;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: "Space Grotesk", "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: radial-gradient(120% 120% at 20% 20%, #12223a 0%, #0c1324 55%, #0a101d 100%);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      display: grid;
+      align-content: center;
+      justify-items: center;
+      padding: 72px 6vw 120px;
+      gap: 28px;
+      text-align: center;
+    }
+    .hero::before, .hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    .hero::before {
+      background: radial-gradient(480px 480px at 18% 32%, rgba(76, 201, 240, 0.28), transparent 70%),
+                  radial-gradient(520px 520px at 78% 22%, rgba(242, 165, 65, 0.22), transparent 70%);
+      filter: blur(2px);
+    }
+    .hero::after {
+      background-image: linear-gradient(120deg, rgba(255,255,255,0.05) 8%, transparent 8%),
+                        linear-gradient(300deg, rgba(255,255,255,0.04) 8%, transparent 8%);
+      background-size: 32px 32px;
+      opacity: 0.35;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 10px 14px;
+      border-radius: 999px;
+      font-size: 14px;
+      width: fit-content;
+      backdrop-filter: blur(8px);
+    }
+    .pill span {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      display: inline-block;
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(36px, 5vw, 64px);
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+      max-width: 1500px; /* widen title area */
+    }
+    .hero-content {
+      display: grid;
+      gap: 12px;
+      justify-items: center;
+      text-align: center;
+      max-width: 1200px;
+    }
+    .summary {
+      max-width: 1500px; /* widen summary area */
+      font-size: 18px;
+      line-height: 1.7;
+      color: var(--muted);
+      margin: 8px auto 0;
+      text-align: center;
+    }
+    .cta-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin-top: 18px;
+      flex-wrap: wrap;
+    }
+    .primary-btn {
+      background: linear-gradient(135deg, var(--accent), #f48f34);
+      color: #0b0f1a;
+      border: none;
+      padding: 14px 20px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 12px 24px rgba(244, 143, 52, 0.22);
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+    .primary-btn:hover { transform: translateY(-2px); box-shadow: 0 16px 32px rgba(244, 143, 52, 0.32); }
+    .ghost-btn {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 13px 18px;
+      border-radius: 12px;
+      font-size: 15px;
+      cursor: pointer;
+      transition: border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+    }
+    .ghost-btn:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
+    .arrow {
+      position: absolute;
+      bottom: 38px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.06);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: border-color 0.18s ease, transform 0.18s ease, background 0.18s ease;
+      backdrop-filter: blur(8px);
+    }
+    .arrow svg { width: 22px; height: 22px; stroke: var(--text); }
+    .arrow:hover { border-color: var(--accent); background: rgba(242, 165, 65, 0.1); transform: translate(-50%, 2px); }
+    .arrow-bounce { animation: bounce 1.6s infinite; }
+    @keyframes bounce {
+      0%, 100% { transform: translate(-50%, 0); }
+      50% { transform: translate(-50%, 6px); }
+    }
+    .section {
+      padding: 72px 6vw 96px;
+      background: linear-gradient(180deg, var(--bg-alt) 0%, #0b111f 100%);
+      border-top: 1px solid var(--border);
+    }
+    .section-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .section-header h2 {
+      margin: 0;
+      font-size: 26px;
+      letter-spacing: -0.01em;
+    }
+    .section-header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+    }
+    .frame {
+      position: relative;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      background: var(--surface);
+      box-shadow: 0 24px 50px rgba(0,0,0,0.45);
+    }
+    iframe {
+      width: 100%;
+      height: min(78vh, 880px);
+      border: none;
+      background: #0b1222;
+    }
+    .frame::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(76,201,240,0.04), transparent 45%, rgba(242,165,65,0.05));
+      pointer-events: none;
+    }
+    .frame-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 14px;
+      font-size: 14px;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      backdrop-filter: blur(6px);
+      background: rgba(0, 0, 0, 0.35);
+    }
+    .frame-footer a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .frame-footer a:hover { color: #f7b968; }
+    @media (max-width: 768px) {
+      .hero { padding-top: 88px; padding-bottom: 120px; }
+      .section { padding-top: 60px; }
+      .section-header { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <section class="hero">
+    <div class="hero-content">
+      <h1 id="hero-title">Project Title Placeholder</h1>
+      <p class="summary" id="hero-summary">Project summary placeholder: briefly describe the goal, data source, or highlight of the visualization. Replace with final copy later.</p>
+      <div class="cta-row">
+        <a class="primary-btn" href="#demo">View Demo</a>
+        <a class="ghost-btn" href="network_vis.html" target="_blank" rel="noopener">Open full visualization</a>
+      </div>
+    </div>
+    <a class="arrow arrow-bounce" href="#demo" aria-label="Scroll to demo">
+      <svg fill="none" viewBox="0 0 24 24" stroke-width="1.6">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 9l6 6 6-6"/>
+      </svg>
+    </a>
+  </section>
+
+  <section id="demo" class="section">
+    <div class="section-header">
+      <h2>Demo</h2>
+      <p>The current network_vis.html is embedded below for quick preview.</p>
+    </div>
+    <div class="frame">
+      <iframe src="network_vis.html" title="Network Visualization Demo" loading="lazy"></iframe>
+      <div class="frame-footer">
+        <span>Embedded preview (uses the same relative asset paths).</span>
+        <a href="network_vis.html" target="_blank" rel="noopener">Open in new tab</a>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    fetch("hero_content.json")
+      .then(r => r.json())
+      .then(data => {
+        const titleEl = document.getElementById("hero-title");
+        const summaryEl = document.getElementById("hero-summary");
+        if (data.title) titleEl.textContent = data.title;
+        if (data.summary) summaryEl.textContent = data.summary;
+      })
+      .catch(() => {
+        /* keep defaults if the json is missing */
+      });
+  </script>
+</body>
+</html>

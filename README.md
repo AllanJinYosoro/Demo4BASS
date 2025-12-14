@@ -2,7 +2,7 @@
 
 Run
 - In the project folder run `python -m http.server 8000`
-- Open `http://localhost:8000/network_vis.html`
+- Open `http://localhost:8000/index.html` for the new homepage (with an embedded preview and link), or go directly to `http://localhost:8000/network_vis.html`.
 
 How to use
 - Dataset dropdown (left): switch dataset (default Stock, or BLM).
